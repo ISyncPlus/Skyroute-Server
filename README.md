@@ -198,6 +198,35 @@ UTC and assert the schedule is byte-identical.
 
 ---
 
+## Deployment (Render)
+
+This repository is configured for one-click deployment to **Render** (Web Service + Managed PostgreSQL):
+
+- **Runtime**: `Node`
+- **Build Command**:
+  ```bash
+  npm install --include=dev && npm run db:generate && npm run build
+  ```
+- **Start Command**:
+  ```bash
+  npm start
+  ```
+  *(Runs `prisma migrate deploy` and `prisma/seed.ts` automatically before starting the server).*
+
+### Production Environment Variables
+
+| Variable | Recommended Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Internal connection string to your Render PostgreSQL instance |
+| `API_URL` | `https://<your-service-name>.onrender.com` |
+| `WEB_ORIGIN` | `https://<your-frontend-domain>,http://localhost:3000` |
+| `SESSION_SECRET` | 64-char random hex string |
+| `COOKIE_SECURE` | `true` |
+| `LOG_LEVEL` | `info` |
+
+---
+
 ## Notes
 
 **A bug found during the port.** The original `generateUniquePnr` fell back to
@@ -211,7 +240,9 @@ that line.
 **Prisma deprecation.** `package.json#prisma` warns that it moves to
 `prisma.config.ts` in Prisma 7. It works today; migrate when you upgrade.
 
-**Connecting the frontend.** Point it at `http://localhost:4000/api` and send
-`credentials: "include"` on every request, or the session cookie will not
-travel. The response shapes are unchanged, so `lib/repository.ts` becomes fetch
-calls and nothing above it needs to know.
+**Connecting the frontend.** Point it at `http://localhost:4000/api` (local) or
+`https://skyroute-server.onrender.com/api` (production). Send
+`credentials: "include"` on every request so the `skyroute_session` cookie
+travels cross-origin. The response shapes are unchanged, so `lib/repository.ts`
+becomes fetch calls and nothing above it needs to know.
+
