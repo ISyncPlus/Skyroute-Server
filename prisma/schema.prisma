@@ -1,0 +1,369 @@
+// SkyRoute — relational schema.
+//
+// This is the migration described in the technical report at Table 13.1: the
+// nine domain entities become tables, BookingSegment / Passenger / Payment
+// become children of Booking, and Seat remains DERIVED rather than stored.
+//
+// There is no seat table. A seat exists because an aircraft's cabin layout
+// says row 12 has a column A, and it is unavailable because some row in
+// seat_assignments claims it. Storing seats as well as bookings would create
+// two sources of truth that could disagree; deriving them means they cannot.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations
+// ---------------------------------------------------------------------------
+
+enum CabinClass {
+  economy
+  business
+  first
+
+  @@map("cabin_class")
+}
+
+enum PassengerType {
+  adult
+  child
+  infant
+
+  @@map("passenger_type")
+}
+
+enum BookingStatus {
+  confirmed
+  cancelled
+  pending
+
+  @@map("booking_status")
+}
+
+enum PaymentStatus {
+  successful
+  failed
+  pending
+
+  @@map("payment_status")
+}
+
+enum PaymentMethod {
+  card
+  transfer
+  wallet
+
+  @@map("payment_method")
+}
+
+enum UserRole {
+  customer
+  admin
+
+  @@map("user_role")
+}
+
+enum FlightStatus {
+  scheduled
+  delayed
+  cancelled
+
+  @@map("flight_status")
+}
+
+// Mapped to the hyphenated strings the API and the frontend already use, so
+// the wire format is unchanged by the move to a database.
+enum TripType {
+  ONE_WAY    @map("one-way")
+  ROUND_TRIP @map("round-trip")
+  MULTI_CITY @map("multi-city")
+
+  @@map("trip_type")
+}
+
+// ---------------------------------------------------------------------------
+// Reference data
+// ---------------------------------------------------------------------------
+
+model Airport {
+  code    String @id @db.Char(3)
+  city    String
+  name    String
+  country String
+
+  departures Flight[] @relation("FlightOrigin")
+  arrivals   Flight[] @relation("FlightDestination")
+
+  @@map("airports")
+}
+
+/// An aircraft type and the cabin layout from which its seat map is derived.
+model Aircraft {
+  type String @id
+
+  /// Rows beside an emergency exit. These carry a higher seat-selection fee
+  /// and cannot be occupied by an infant.
+  exitRows Int[] @map("exit_rows")
+
+  cabins  AircraftCabin[]
+  flights Flight[]
+
+  @@map("aircraft")
+}
+
+/// One cabin band on an aircraft: "economy occupies rows 8-32, columns A-F".
+model AircraftCabin {
+  id           Int        @id @default(autoincrement())
+  aircraftType String     @map("aircraft_type")
+  cabin        CabinClass
+  startRow     Int        @map("start_row")
+  endRow       Int        @map("end_row")
+  columns      String[]
+
+  aircraft Aircraft @relation(fields: [aircraftType], references: [type], onDelete: Cascade)
+
+  @@unique([aircraftType, cabin])
+  @@map("aircraft_cabins")
+}
+
+// ---------------------------------------------------------------------------
+// Schedule
+// ---------------------------------------------------------------------------
+
+model Flight {
+  id              String       @id
+  flightNumber    String       @map("flight_number")
+  airline         String
+  airlineCode     String       @map("airline_code") @db.VarChar(3)
+  originCode      String       @map("origin_code") @db.Char(3)
+  destinationCode String       @map("destination_code") @db.Char(3)
+  departureTime   DateTime     @map("departure_time") @db.Timestamptz(3)
+  arrivalTime     DateTime     @map("arrival_time") @db.Timestamptz(3)
+  durationMinutes Int          @map("duration_minutes")
+  aircraftType    String       @map("aircraft_type")
+  baseFare        Int          @map("base_fare")
+  currency        String       @default("NGN") @db.Char(3)
+  /// Seats withheld for reasons other than a booking: crew rest, weight and
+  /// balance, a broken recliner.
+  blockedSeats    String[]     @map("blocked_seats")
+  status          FlightStatus @default(scheduled)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  origin      Airport  @relation("FlightOrigin", fields: [originCode], references: [code])
+  destination Airport  @relation("FlightDestination", fields: [destinationCode], references: [code])
+  aircraft    Aircraft @relation(fields: [aircraftType], references: [type])
+
+  segments        BookingSegment[]
+  seatAssignments SeatAssignment[]
+
+  // The search query: route plus date, narrowed by status.
+  @@index([originCode, destinationCode, departureTime])
+  @@index([departureTime])
+  @@index([status])
+  @@map("flights")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+model User {
+  id String @id @default(cuid())
+
+  fullName String @map("full_name")
+  /// Stored lower-cased. Uniqueness is therefore case-insensitive in practice,
+  /// so Ada@x.com and ada@x.com cannot both register.
+  email    String @unique
+  /// Null for an account created purely through Google or GitHub, which has no
+  /// password to verify. Such an account signs in only via that provider.
+  passwordHash String? @map("password_hash")
+  phone        String?
+  role         UserRole @default(customer)
+
+  emailVerified Boolean  @default(false) @map("email_verified")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  bookings      Booking[]
+  sessions      Session[]
+  oauthAccounts OAuthAccount[]
+
+  @@map("users")
+}
+
+/// A third-party identity linked to an account. One user may hold several —
+/// signing in with Google and later with GitHub on the same email address
+/// links both to the one account rather than creating a duplicate.
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  userId            String   @map("user_id")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+/// A signed-in session. The token itself is never stored — only its SHA-256
+/// digest — so a leaked database dump cannot be replayed as a login.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique @map("token_hash")
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  userAgent String?  @map("user_agent")
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Reservations
+// ---------------------------------------------------------------------------
+
+model Booking {
+  pnr String @id @db.Char(6)
+
+  /// Null when booked as a guest. A guest booking is reachable only by
+  /// reference plus surname, and will never appear in anybody's "my bookings".
+  userId String? @map("user_id")
+
+  tripType TripType      @default(ONE_WAY) @map("trip_type")
+  status   BookingStatus @default(confirmed)
+
+  contactEmail String @map("contact_email")
+  contactPhone String @map("contact_phone")
+
+  // Fare breakdown, stored itemised so a historic booking always shows what
+  // was actually charged even after the pricing rules change.
+  baseFareTotal    Int    @map("base_fare_total")
+  cabinSurcharge   Int    @map("cabin_surcharge")
+  seatSelectionFee Int    @map("seat_selection_fee")
+  taxes            Int
+  serviceCharge    Int    @map("service_charge")
+  total            Int
+  currency         String @default("NGN") @db.Char(3)
+
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  cancelledAt  DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  refundAmount Int?      @map("refund_amount")
+
+  user       User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  segments   BookingSegment[]
+  passengers Passenger[]
+  payment    Payment?
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("bookings")
+}
+
+/// One flight within a journey. Seats hang off the segment rather than off the
+/// passenger because the same traveller sits somewhere different on each leg.
+model BookingSegment {
+  id         String     @id @default(cuid())
+  bookingPnr String     @map("booking_pnr") @db.Char(6)
+  flightId   String     @map("flight_id")
+  cabin      CabinClass
+  /// Position in flown order, from 0.
+  position   Int
+
+  booking         Booking          @relation(fields: [bookingPnr], references: [pnr], onDelete: Cascade)
+  flight          Flight           @relation(fields: [flightId], references: [id], onDelete: Restrict)
+  seatAssignments SeatAssignment[]
+
+  @@unique([bookingPnr, position])
+  @@index([flightId])
+  @@map("booking_segments")
+}
+
+model Passenger {
+  id         String @id @default(cuid())
+  bookingPnr String @map("booking_pnr") @db.Char(6)
+  /// Position within the booking, from 0. Seats are supplied positionally, so
+  /// this is what ties passenger 2 to the second seat on every leg.
+  position   Int
+
+  title          String
+  firstName      String        @map("first_name")
+  lastName       String        @map("last_name")
+  dateOfBirth    DateTime      @map("date_of_birth") @db.Date
+  gender         String
+  /// Required only on international routes, so nullable.
+  passportNumber String?       @map("passport_number")
+  type           PassengerType
+
+  booking         Booking          @relation(fields: [bookingPnr], references: [pnr], onDelete: Cascade)
+  seatAssignments SeatAssignment[]
+
+  @@unique([bookingPnr, position])
+  @@index([bookingPnr])
+  // The "manage booking" lookup is reference + surname.
+  @@index([lastName])
+  @@map("passengers")
+}
+
+/// One passenger in one seat on one flight.
+///
+/// `flightId` is denormalised from the segment purely so the database can hold
+/// a unique index on (flight_id, seat_id). That index — created as a PARTIAL
+/// index over active rows only, in migrations/.../seat_uniqueness — is what
+/// makes selling a seat twice impossible at the storage layer rather than
+/// merely unlikely at the application layer.
+model SeatAssignment {
+  id          String  @id @default(cuid())
+  segmentId   String  @map("segment_id")
+  passengerId String  @map("passenger_id")
+  flightId    String  @map("flight_id")
+  seatId      String  @map("seat_id")
+  /// Set false when the booking is cancelled, which releases the seat by
+  /// dropping the row out of the partial unique index while keeping the
+  /// historical record of who sat where.
+  active      Boolean @default(true)
+
+  segment   BookingSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  passenger Passenger      @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  flight    Flight         @relation(fields: [flightId], references: [id], onDelete: Restrict)
+
+  @@unique([segmentId, passengerId])
+  @@index([flightId, active])
+  @@map("seat_assignments")
+}
+
+model Payment {
+  id         String @id @default(cuid())
+  bookingPnr String @unique @map("booking_pnr") @db.Char(6)
+
+  method               PaymentMethod
+  /// For a card this is "**** **** **** 4081". For the other methods it names
+  /// the instrument. A full card number is never stored, in any column.
+  maskedCardNumber     String        @map("masked_card_number")
+  cardHolder           String        @map("card_holder")
+  amount               Int
+  currency             String        @db.Char(3)
+  status               PaymentStatus
+  transactionReference String        @unique @map("transaction_reference")
+  paidAt               DateTime      @map("paid_at") @db.Timestamptz(3)
+  failureReason        String?       @map("failure_reason")
+
+  booking Booking @relation(fields: [bookingPnr], references: [pnr], onDelete: Cascade)
+
+  @@map("payments")
+}

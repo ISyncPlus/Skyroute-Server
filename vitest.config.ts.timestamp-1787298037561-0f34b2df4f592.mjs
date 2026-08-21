@@ -1,0 +1,22 @@
+// vitest.config.ts
+import { defineConfig } from "file:///sessions/eager-jolly-cori/mnt/Skyroute%20server/node_modules/vitest/dist/config.js";
+var vitest_config_default = defineConfig({
+  test: {
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
+    // The domain suite touches neither the database nor the network, so it is
+    // safe — and much faster — to run the files in parallel.
+    pool: "threads",
+    env: {
+      NODE_ENV: "test",
+      API_URL: "http://localhost:4000",
+      WEB_ORIGIN: "http://localhost:3000",
+      DATABASE_URL: "postgresql://test:test@localhost:5432/skyroute_test?schema=public",
+      SESSION_SECRET: "test-secret-that-is-definitely-long-enough-to-pass"
+    }
+  }
+});
+export {
+  vitest_config_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidml0ZXN0LmNvbmZpZy50cyJdLAogICJzb3VyY2VzQ29udGVudCI6IFsiY29uc3QgX192aXRlX2luamVjdGVkX29yaWdpbmFsX2Rpcm5hbWUgPSBcIi9zZXNzaW9ucy9lYWdlci1qb2xseS1jb3JpL21udC9Ta3lyb3V0ZSBzZXJ2ZXJcIjtjb25zdCBfX3ZpdGVfaW5qZWN0ZWRfb3JpZ2luYWxfZmlsZW5hbWUgPSBcIi9zZXNzaW9ucy9lYWdlci1qb2xseS1jb3JpL21udC9Ta3lyb3V0ZSBzZXJ2ZXIvdml0ZXN0LmNvbmZpZy50c1wiO2NvbnN0IF9fdml0ZV9pbmplY3RlZF9vcmlnaW5hbF9pbXBvcnRfbWV0YV91cmwgPSBcImZpbGU6Ly8vc2Vzc2lvbnMvZWFnZXItam9sbHktY29yaS9tbnQvU2t5cm91dGUlMjBzZXJ2ZXIvdml0ZXN0LmNvbmZpZy50c1wiO2ltcG9ydCB7IGRlZmluZUNvbmZpZyB9IGZyb20gXCJ2aXRlc3QvY29uZmlnXCI7XG5cbmV4cG9ydCBkZWZhdWx0IGRlZmluZUNvbmZpZyh7XG4gIHRlc3Q6IHtcbiAgICBlbnZpcm9ubWVudDogXCJub2RlXCIsXG4gICAgaW5jbHVkZTogW1widGVzdHMvKiovKi50ZXN0LnRzXCJdLFxuICAgIC8vIFRoZSBkb21haW4gc3VpdGUgdG91Y2hlcyBuZWl0aGVyIHRoZSBkYXRhYmFzZSBub3IgdGhlIG5ldHdvcmssIHNvIGl0IGlzXG4gICAgLy8gc2FmZSBcdTIwMTQgYW5kIG11Y2ggZmFzdGVyIFx1MjAxNCB0byBydW4gdGhlIGZpbGVzIGluIHBhcmFsbGVsLlxuICAgIHBvb2w6IFwidGhyZWFkc1wiLFxuICAgIGVudjoge1xuICAgICAgTk9ERV9FTlY6IFwidGVzdFwiLFxuICAgICAgQVBJX1VSTDogXCJodHRwOi8vbG9jYWxob3N0OjQwMDBcIixcbiAgICAgIFdFQl9PUklHSU46IFwiaHR0cDovL2xvY2FsaG9zdDozMDAwXCIsXG4gICAgICBEQVRBQkFTRV9VUkw6IFwicG9zdGdyZXNxbDovL3Rlc3Q6dGVzdEBsb2NhbGhvc3Q6NTQzMi9za3lyb3V0ZV90ZXN0P3NjaGVtYT1wdWJsaWNcIixcbiAgICAgIFNFU1NJT05fU0VDUkVUOiBcInRlc3Qtc2VjcmV0LXRoYXQtaXMtZGVmaW5pdGVseS1sb25nLWVub3VnaC10by1wYXNzXCIsXG4gICAgfSxcbiAgfSxcbn0pO1xuIl0sCiAgIm1hcHBpbmdzIjogIjtBQUFrVSxTQUFTLG9CQUFvQjtBQUUvVixJQUFPLHdCQUFRLGFBQWE7QUFBQSxFQUMxQixNQUFNO0FBQUEsSUFDSixhQUFhO0FBQUEsSUFDYixTQUFTLENBQUMsb0JBQW9CO0FBQUE7QUFBQTtBQUFBLElBRzlCLE1BQU07QUFBQSxJQUNOLEtBQUs7QUFBQSxNQUNILFVBQVU7QUFBQSxNQUNWLFNBQVM7QUFBQSxNQUNULFlBQVk7QUFBQSxNQUNaLGNBQWM7QUFBQSxNQUNkLGdCQUFnQjtBQUFBLElBQ2xCO0FBQUEsRUFDRjtBQUNGLENBQUM7IiwKICAibmFtZXMiOiBbXQp9Cg==
