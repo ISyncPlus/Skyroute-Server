@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "prisma migrate deploy && node dist/index.js",
+    "start": "prisma migrate deploy && tsx prisma/seed.ts && node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
