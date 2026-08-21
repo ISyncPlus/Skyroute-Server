@@ -41,10 +41,9 @@ function cookieOptions(maxAgeMs: number): CookieOptions {
   return {
     httpOnly: true, // JavaScript cannot read it, so XSS cannot steal it.
     secure: env.COOKIE_SECURE,
-    // "lax" still sends the cookie on the top-level redirect back from an
-    // OAuth provider, which "strict" would swallow — the user would arrive
-    // signed in and immediately appear signed out.
-    sameSite: "lax",
+    // "none" with secure=true allows cross-origin requests (e.g., localhost or Vercel frontend calling Render backend).
+    // "lax" is used in non-secure local dev.
+    sameSite: env.COOKIE_SECURE ? "none" : "lax",
     path: "/",
     maxAge: maxAgeMs,
     ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),

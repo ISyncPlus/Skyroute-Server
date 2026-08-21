@@ -42,7 +42,14 @@ export function createApp(): Express {
       origin(origin, callback) {
         // No Origin header: curl, a server-to-server call, a health probe.
         if (!origin) return callback(null, true);
-        if (env.webOrigins.includes(origin)) return callback(null, true);
+        const normalized = origin.replace(/\/$/, "");
+        if (
+          env.webOrigins.some((allowed) => allowed.replace(/\/$/, "") === normalized) ||
+          /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+          /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
+        ) {
+          return callback(null, true);
+        }
         return callback(new Error(`Origin ${origin} is not permitted.`));
       },
       // Required for the session cookie to travel cross-origin at all.
