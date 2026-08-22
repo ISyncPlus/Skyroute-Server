@@ -196,7 +196,13 @@ export function toBooking(row: BookingWithRelations): Booking {
 
 /** Never includes the password hash — that column must not leave the service. */
 export function toSessionUser(row: UserRow): SessionUser {
-  return { id: row.id, fullName: row.fullName, email: row.email, role: row.role };
+  return {
+    id: row.id,
+    fullName: row.fullName,
+    email: row.email,
+    role: row.role,
+    avatarUrl: row.avatarUrl,
+  };
 }
 
 export interface PublicUser extends SessionUser {

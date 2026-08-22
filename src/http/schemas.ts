@@ -58,6 +58,7 @@ export const updateProfileSchema = z
   .object({
     fullName: z.string().trim().min(1).max(100).optional(),
     phone: z.string().trim().max(20).optional(),
+    avatarUrl: z.string().trim().url("Enter a valid URL for avatar.").optional().nullable(),
   })
   .refine((value) => Object.keys(value).length > 0, "Nothing to update.");
 

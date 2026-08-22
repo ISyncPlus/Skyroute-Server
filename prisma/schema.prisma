@@ -185,6 +185,7 @@ model User {
   /// password to verify. Such an account signs in only via that provider.
   passwordHash String? @map("password_hash")
   phone        String?
+  avatarUrl    String?  @map("avatar_url")
   role         UserRole @default(customer)
 
   emailVerified Boolean  @default(false) @map("email_verified")

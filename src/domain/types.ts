@@ -169,6 +169,7 @@ export interface SessionUser {
   fullName: string;
   email: string;
   role: UserRole;
+  avatarUrl?: string | null;
 }
 
 export interface SearchLeg {

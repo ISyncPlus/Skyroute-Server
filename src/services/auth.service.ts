@@ -218,7 +218,7 @@ export async function getProfile(userId: string): Promise<PublicUser> {
 
 export async function updateProfile(
   userId: string,
-  changes: { fullName?: string; phone?: string },
+  changes: { fullName?: string; phone?: string; avatarUrl?: string | null },
 ): Promise<PublicUser> {
   const data: Prisma.UserUpdateInput = {};
 
@@ -231,6 +231,7 @@ export async function updateProfile(
   }
 
   if (changes.phone !== undefined) data.phone = sanitiseText(changes.phone, 20);
+  if (changes.avatarUrl !== undefined) data.avatarUrl = changes.avatarUrl;
 
   const user = await prisma.user.update({ where: { id: userId }, data });
   return toPublicUser(user);
@@ -245,6 +246,7 @@ export interface OAuthProfile {
   providerAccountId: string;
   email: string | null;
   fullName: string;
+  avatarUrl?: string | null;
 }
 
 /**
@@ -271,7 +273,15 @@ export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<User
     include: { user: true },
   });
 
-  if (existingLink) return existingLink.user;
+  if (existingLink) {
+    if (profile.avatarUrl && !existingLink.user.avatarUrl) {
+      return prisma.user.update({
+        where: { id: existingLink.user.id },
+        data: { avatarUrl: profile.avatarUrl },
+      });
+    }
+    return existingLink.user;
+  }
 
   const email = profile.email ? normaliseEmail(profile.email) : null;
 
@@ -285,10 +295,14 @@ export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<User
           userId: byEmail.id,
         },
       });
-      if (!byEmail.emailVerified) {
-        await prisma.user.update({
+      const updateData: Prisma.UserUpdateInput = {};
+      if (!byEmail.emailVerified) updateData.emailVerified = true;
+      if (profile.avatarUrl && !byEmail.avatarUrl) updateData.avatarUrl = profile.avatarUrl;
+
+      if (Object.keys(updateData).length > 0) {
+        return prisma.user.update({
           where: { id: byEmail.id },
-          data: { emailVerified: true },
+          data: updateData,
         });
       }
       return byEmail;
@@ -311,6 +325,7 @@ export async function findOrCreateOAuthUser(profile: OAuthProfile): Promise<User
       emailVerified: true,
       passwordHash: null,
       role: "customer",
+      avatarUrl: profile.avatarUrl ?? null,
       oauthAccounts: {
         create: {
           provider: profile.provider,

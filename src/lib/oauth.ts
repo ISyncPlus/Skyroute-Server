@@ -41,6 +41,7 @@ function extractProfile(
     displayName?: string | undefined;
     username?: string | undefined;
     emails?: { value: string; verified?: boolean | string }[] | undefined;
+    photos?: { value: string }[] | undefined;
   },
 ): OAuthProfile {
   const verified = profile.emails?.find(
@@ -52,6 +53,7 @@ function extractProfile(
     providerAccountId: profile.id,
     email: verified?.value ?? profile.emails?.[0]?.value ?? null,
     fullName: profile.displayName || profile.username || "",
+    avatarUrl: profile.photos?.[0]?.value ?? null,
   };
 }
 
