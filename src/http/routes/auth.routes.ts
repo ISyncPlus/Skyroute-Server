@@ -158,12 +158,11 @@ function assertEnabled(provider: string): asserts provider is Provider {
 }
 
 /** Where to send the browser once the handshake is done. */
-function redirectTarget(status: "success" | "error", detail?: string, token?: string): string {
+function redirectTarget(status: "success" | "error", detail?: string): string {
   const base = env.webOrigins[0] ?? "/";
   const url = new URL("/login", base);
   url.searchParams.set("oauth", status);
   if (detail) url.searchParams.set("reason", detail);
-  if (token) url.searchParams.set("token", token);
   return url.toString();
 }
 
@@ -197,7 +196,7 @@ authRoutes.get("/oauth/:provider/callback", (req: Request, res: Response, next) 
       try {
         const result = await issueSession(user, meta(req));
         setSessionCookie(res, result.token);
-        return res.redirect(redirectTarget("success", undefined, result.token));
+        return res.redirect(redirectTarget("success"));
       } catch {
         return res.redirect(redirectTarget("error", "Your session could not be created."));
       }
