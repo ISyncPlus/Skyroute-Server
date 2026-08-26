@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>SkyRoute API Documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+    <style>
+      body { margin: 0; padding: 0; background: #fafafa; font-family: sans-serif; }
+      .topbar { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+      window.onload = () => {
+        const spec = {
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SkyRoute Flight Booking API",
+    "version": "1.0.0",
+    "description": "Comprehensive REST API documentation for SkyRoute. Includes user authentication, flight schedules & searches, seat allocations, booking workflows, and administrative management."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current Server Instance"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Session token returned by register or login endpoints. Pass as `Authorization: Bearer <token>` or as a cookie (`skyroute_session`)."
+      }
+    },
+    "schemas": {
+      "RegisterInput": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 120,
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "confirmPassword": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "phone",
+          "password",
+          "confirmPassword"
+        ]
+      },
+      "LoginInput": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ChangePasswordInput": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "UpdateProfileInput": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri"
+          }
+        }
+      },
+      "SearchFlightInput": {
+        "type": "object",
+        "properties": {
+          "originCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "destinationCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "departureDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "tripType": {
+            "type": "string",
+            "enum": [
+              "one-way",
+              "round-trip",
+              "multi-city"
+            ],
+            "default": "one-way"
+          },
+          "returnDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "extraLegs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "originCode": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{3}$"
+                },
+                "destinationCode": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{3}$"
+                },
+                "departureDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                }
+              },
+              "required": [
+                "originCode",
+                "destinationCode",
+                "departureDate"
+              ]
+            },
+            "maxItems": 5
+          },
+          "cabin": {
+            "type": "string",
+            "enum": [
+              "economy",
+              "business",
+              "first"
+            ],
+            "default": "economy"
+          },
+          "adults": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
+          },
+          "children": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 8,
+            "default": 0
+          },
+          "infants": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 8,
+            "default": 0
+          }
+        },
+        "required": [
+          "originCode",
+          "destinationCode",
+          "departureDate",
+          "adults"
+        ]
+      },
+      "AlternativeDatesInput": {
+        "type": "object",
+        "properties": {
+          "originCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "destinationCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          }
+        },
+        "required": [
+          "originCode",
+          "destinationCode"
+        ]
+      },
+      "CreateBookingInput": {
+        "type": "object",
+        "properties": {
+          "legs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "flightId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "cabin": {
+                  "type": "string",
+                  "enum": [
+                    "economy",
+                    "business",
+                    "first"
+                  ]
+                },
+                "seatIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "nullable": true,
+                    "pattern": "^\\d{1,3}[A-K]$"
+                  },
+                  "maxItems": 9
+                }
+              },
+              "required": [
+                "flightId",
+                "cabin",
+                "seatIds"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 6
+          },
+          "tripType": {
+            "type": "string",
+            "enum": [
+              "one-way",
+              "round-trip",
+              "multi-city"
+            ]
+          },
+          "contactEmail": {
+            "type": "string",
+            "maxLength": 120,
+            "format": "email"
+          },
+          "contactPhone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          },
+          "passengers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "enum": [
+                    "Mr",
+                    "Mrs",
+                    "Miss",
+                    "Ms",
+                    "Dr"
+                  ]
+                },
+                "firstName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                "lastName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 50
+                },
+                "dateOfBirth": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "gender": {
+                  "type": "string",
+                  "enum": [
+                    "male",
+                    "female"
+                  ]
+                },
+                "passportNumber": {
+                  "type": "string",
+                  "maxLength": 20
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "adult",
+                    "child",
+                    "infant"
+                  ]
+                }
+              },
+              "required": [
+                "title",
+                "firstName",
+                "lastName",
+                "dateOfBirth",
+                "gender",
+                "type"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 9
+          },
+          "payment": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "enum": [
+                  "card",
+                  "transfer",
+                  "wallet"
+                ]
+              },
+              "cardHolder": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "cardNumber": {
+                "type": "string",
+                "maxLength": 25
+              },
+              "expiry": {
+                "type": "string",
+                "maxLength": 7
+              },
+              "cvv": {
+                "type": "string",
+                "maxLength": 4
+              },
+              "senderName": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "forceFailure": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "legs",
+          "contactEmail",
+          "contactPhone",
+          "passengers",
+          "payment"
+        ]
+      },
+      "ManagePnrInput": {
+        "type": "object",
+        "properties": {
+          "pnr": {
+            "type": "string",
+            "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+          },
+          "surname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "pnr",
+          "surname"
+        ]
+      },
+      "PnrParam": {
+        "type": "object",
+        "properties": {
+          "pnr": {
+            "type": "string",
+            "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+          }
+        },
+        "required": [
+          "pnr"
+        ]
+      },
+      "CancelBookingInput": {
+        "type": "object",
+        "properties": {
+          "surname": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          }
+        }
+      },
+      "AdminFlightQuery": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "delayed",
+              "cancelled"
+            ]
+          },
+          "originCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "destinationCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50
+          }
+        }
+      },
+      "AdminBookingQuery": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled",
+              "pending"
+            ]
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50
+          }
+        }
+      },
+      "CreateFlightInput": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,8}$"
+          },
+          "airline": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "airlineCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,3}$"
+          },
+          "originCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "destinationCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "departureTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivalTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "aircraft": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "baseFare": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 50000000
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "blockedSeats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "maxItems": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "delayed",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "flightNumber",
+          "airline",
+          "airlineCode",
+          "originCode",
+          "destinationCode",
+          "departureTime",
+          "arrivalTime",
+          "aircraft",
+          "baseFare"
+        ]
+      },
+      "UpdateFlightInput": {
+        "type": "object",
+        "properties": {
+          "flightNumber": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,8}$"
+          },
+          "airline": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "airlineCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9]{2,3}$"
+          },
+          "originCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "destinationCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "departureTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrivalTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "aircraft": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "baseFare": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 50000000
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "blockedSeats": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "maxItems": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "delayed",
+              "cancelled"
+            ]
+          }
+        }
+      },
+      "SetRoleInput": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "admin"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "ExtendScheduleInput": {
+        "type": "object",
+        "properties": {
+          "horizonDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          }
+        }
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "description": "Database liveness and server uptime probe.",
+        "responses": {
+          "200": {
+            "description": "Server and database are healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "database": {
+                      "type": "string",
+                      "enum": [
+                        "reachable"
+                      ]
+                    },
+                    "latencyMs": {
+                      "type": "number"
+                    },
+                    "uptimeSeconds": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "database",
+                    "latencyMs",
+                    "uptimeSeconds"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database is unreachable / degraded service.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "degraded"
+                      ]
+                    },
+                    "database": {
+                      "type": "string",
+                      "enum": [
+                        "unreachable"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "database"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register Account",
+        "description": "Create a new user account with credentials, issuing a session cookie and bearer token.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "confirmPassword": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "fullName",
+                  "email",
+                  "phone",
+                  "password",
+                  "confirmPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "fullName": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "fullName",
+                        "phone",
+                        "role"
+                      ]
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "token",
+                    "expiresAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure or password mismatch."
+          },
+          "409": {
+            "description": "Email is already registered."
+          },
+          "429": {
+            "description": "Too many attempts from this IP."
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign In",
+        "description": "Sign in with email and password.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "fullName": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "fullName",
+                        "role"
+                      ]
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "token",
+                    "expiresAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure."
+          },
+          "401": {
+            "description": "Invalid email or password."
+          },
+          "429": {
+            "description": "Too many attempts from this IP."
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign Out Current Session",
+        "description": "Revoke the current session token and clear the session cookie.",
+        "responses": {
+          "204": {
+            "description": "Signed out successfully."
+          }
+        }
+      }
+    },
+    "/api/auth/logout-all": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign Out All Devices",
+        "description": "Revoke all active sessions for the authenticated user.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All sessions revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionsRevoked": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "sessionsRevoked"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Current Profile",
+        "description": "Returns the profile of the currently signed-in user or null if anonymous.",
+        "responses": {
+          "200": {
+            "description": "Profile object or null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "nullable": true,
+                      "additionalProperties": {
+                        "nullable": true
+                      }
+                    },
+                    "linkedProviders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "user"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Update Profile",
+        "description": "Update the authenticated user's name, phone, or avatar.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "avatarUrl": {
+                    "type": "string",
+                    "nullable": true,
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully."
+          },
+          "400": {
+            "description": "Validation failure."
+          },
+          "401": {
+            "description": "Authentication required."
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Change Password",
+        "description": "Change password and revoke all existing sessions.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "currentPassword",
+                  "newPassword"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure."
+          },
+          "401": {
+            "description": "Current password invalid or unauthenticated."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/providers": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Enabled OAuth Providers",
+        "description": "Lists configured OAuth providers (e.g. google, github).",
+        "responses": {
+          "200": {
+            "description": "List of enabled providers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "providers"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/{provider}": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Initiate OAuth Flow",
+        "description": "Redirects the browser to the third-party OAuth provider login page.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google",
+                "github"
+              ]
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to OAuth consent screen."
+          },
+          "404": {
+            "description": "Provider not configured."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Unlink OAuth Provider",
+        "description": "Unlink an external OAuth provider from the signed-in account.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provider unlinked."
+          },
+          "400": {
+            "description": "Cannot unlink only sign-in method."
+          },
+          "401": {
+            "description": "Authentication required."
+          }
+        }
+      }
+    },
+    "/api/auth/oauth/{provider}/callback": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "OAuth Callback",
+        "description": "Callback endpoint that OAuth providers redirect back to.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google",
+                "github"
+              ]
+            },
+            "required": true,
+            "name": "provider",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirects back to frontend with session cookie or error query param."
+          }
+        }
+      }
+    },
+    "/api/flights/airports": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "List Airports",
+        "description": "Retrieve all served airports, cities, countries, and IATA codes.",
+        "responses": {
+          "200": {
+            "description": "List of active airports.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "airports": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "city": {
+                            "type": "string"
+                          },
+                          "country": {
+                            "type": "string"
+                          },
+                          "timezone": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "name",
+                          "city",
+                          "country",
+                          "timezone"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "airports"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flights/search": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Search Flights (GET)",
+        "description": "Search for available one-way, round-trip, or multi-city flights using URL query parameters.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": true,
+            "name": "originCode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": true,
+            "name": "destinationCode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": true,
+            "name": "departureDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "one-way",
+                "round-trip",
+                "multi-city"
+              ],
+              "default": "one-way"
+            },
+            "required": false,
+            "name": "tripType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "returnDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "originCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "destinationCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "departureDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  }
+                },
+                "required": [
+                  "originCode",
+                  "destinationCode",
+                  "departureDate"
+                ]
+              },
+              "maxItems": 5
+            },
+            "required": false,
+            "name": "extraLegs",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "economy",
+                "business",
+                "first"
+              ],
+              "default": "economy"
+            },
+            "required": false,
+            "name": "cabin",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9
+            },
+            "required": true,
+            "name": "adults",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0,
+              "maximum": 8,
+              "default": 0
+            },
+            "required": false,
+            "name": "children",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "nullable": true,
+              "minimum": 0,
+              "maximum": 8,
+              "default": 0
+            },
+            "required": false,
+            "name": "infants",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results with itineraries and seat availability."
+          },
+          "400": {
+            "description": "Validation failure (e.g. invalid date or airport codes)."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Search Flights (POST)",
+        "description": "Search for available flights using JSON body. Ideal for complex multi-city queries.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "originCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "destinationCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "departureDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "tripType": {
+                    "type": "string",
+                    "enum": [
+                      "one-way",
+                      "round-trip",
+                      "multi-city"
+                    ],
+                    "default": "one-way"
+                  },
+                  "returnDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "extraLegs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "originCode": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{3}$"
+                        },
+                        "destinationCode": {
+                          "type": "string",
+                          "pattern": "^[A-Z]{3}$"
+                        },
+                        "departureDate": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        }
+                      },
+                      "required": [
+                        "originCode",
+                        "destinationCode",
+                        "departureDate"
+                      ]
+                    },
+                    "maxItems": 5
+                  },
+                  "cabin": {
+                    "type": "string",
+                    "enum": [
+                      "economy",
+                      "business",
+                      "first"
+                    ],
+                    "default": "economy"
+                  },
+                  "adults": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9
+                  },
+                  "children": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0,
+                    "maximum": 8,
+                    "default": 0
+                  },
+                  "infants": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0,
+                    "maximum": 8,
+                    "default": 0
+                  }
+                },
+                "required": [
+                  "originCode",
+                  "destinationCode",
+                  "departureDate",
+                  "adults"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Search results with itineraries and seat availability."
+          },
+          "400": {
+            "description": "Validation failure."
+          }
+        }
+      }
+    },
+    "/api/flights/alternative-dates": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Alternative Available Dates",
+        "description": "List nearby dates with scheduled flights between origin and destination.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": true,
+            "name": "originCode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": true,
+            "name": "destinationCode",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of ISO dates with flight departures.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dates": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "dates"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure."
+          }
+        }
+      }
+    },
+    "/api/flights/{flightId}": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Get Flight Details",
+        "description": "Get detailed flight info by ID.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "flightId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flight details."
+          },
+          "404": {
+            "description": "Flight not found."
+          }
+        }
+      }
+    },
+    "/api/flights/{flightId}/seats": {
+      "get": {
+        "tags": [
+          "Flights"
+        ],
+        "summary": "Get Flight Seat Map",
+        "description": "Get seat layout, cabin classes, occupancy status, and seat pricing.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "flightId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Seat map configuration and availability."
+          },
+          "404": {
+            "description": "Flight not found."
+          }
+        }
+      }
+    },
+    "/api/bookings": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Create Booking",
+        "description": "Create a new flight reservation with passenger details and payment. Supports guest and authenticated bookings.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "flightId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "cabin": {
+                          "type": "string",
+                          "enum": [
+                            "economy",
+                            "business",
+                            "first"
+                          ]
+                        },
+                        "seatIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "nullable": true,
+                            "pattern": "^\\d{1,3}[A-K]$"
+                          },
+                          "maxItems": 9
+                        }
+                      },
+                      "required": [
+                        "flightId",
+                        "cabin",
+                        "seatIds"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 6
+                  },
+                  "tripType": {
+                    "type": "string",
+                    "enum": [
+                      "one-way",
+                      "round-trip",
+                      "multi-city"
+                    ]
+                  },
+                  "contactEmail": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "format": "email"
+                  },
+                  "contactPhone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "passengers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "enum": [
+                            "Mr",
+                            "Mrs",
+                            "Miss",
+                            "Ms",
+                            "Dr"
+                          ]
+                        },
+                        "firstName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 50
+                        },
+                        "dateOfBirth": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "gender": {
+                          "type": "string",
+                          "enum": [
+                            "male",
+                            "female"
+                          ]
+                        },
+                        "passportNumber": {
+                          "type": "string",
+                          "maxLength": 20
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "adult",
+                            "child",
+                            "infant"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "firstName",
+                        "lastName",
+                        "dateOfBirth",
+                        "gender",
+                        "type"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 9
+                  },
+                  "payment": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": [
+                          "card",
+                          "transfer",
+                          "wallet"
+                        ]
+                      },
+                      "cardHolder": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "cardNumber": {
+                        "type": "string",
+                        "maxLength": 25
+                      },
+                      "expiry": {
+                        "type": "string",
+                        "maxLength": 7
+                      },
+                      "cvv": {
+                        "type": "string",
+                        "maxLength": 4
+                      },
+                      "senderName": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "forceFailure": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "method"
+                    ]
+                  }
+                },
+                "required": [
+                  "legs",
+                  "contactEmail",
+                  "contactPhone",
+                  "passengers",
+                  "payment"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking confirmed with PNR reference."
+          },
+          "400": {
+            "description": "Validation error, seat unavailable, or invalid payment."
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "List User Bookings",
+        "description": "List all bookings belonging to the signed-in account.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user bookings."
+          },
+          "401": {
+            "description": "Authentication required."
+          }
+        }
+      }
+    },
+    "/api/bookings/lookup": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Guest Booking Lookup",
+        "description": "Retrieve booking details using 6-character PNR reference code and passenger surname.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pnr": {
+                    "type": "string",
+                    "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+                  },
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  }
+                },
+                "required": [
+                  "pnr",
+                  "surname"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking details and cancellation quote."
+          },
+          "404": {
+            "description": "Booking reference or surname does not match."
+          }
+        }
+      }
+    },
+    "/api/bookings/{pnr}": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Get Booking by PNR",
+        "description": "Retrieve booking details by PNR.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+            },
+            "required": true,
+            "name": "pnr",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking details and cancellation quote."
+          },
+          "404": {
+            "description": "Booking reference not found."
+          }
+        }
+      }
+    },
+    "/api/bookings/{pnr}/cancel": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Cancel Booking",
+        "description": "Cancel a booking and calculate refund according to policy. Accepts account session or surname verification.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+            },
+            "required": true,
+            "name": "pnr",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking cancelled with refund receipt."
+          },
+          "400": {
+            "description": "Surname missing for guest cancellation or flight already departed."
+          },
+          "404": {
+            "description": "Booking not found."
+          }
+        }
+      }
+    },
+    "/api/admin/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin Dashboard Metrics",
+        "description": "System overview stats: revenue, booking totals, active flights, and passenger counts.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "System metrics."
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/flights": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin List Flights",
+        "description": "Paginated flight list with status, route, and date filters.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "scheduled",
+                "delayed",
+                "cancelled"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": false,
+            "name": "originCode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "required": false,
+            "name": "destinationCode",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of flights."
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create Flight",
+        "description": "Add a new scheduled flight into the system.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "flightNumber": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{2,8}$"
+                  },
+                  "airline": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "airlineCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{2,3}$"
+                  },
+                  "originCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "destinationCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "departureTime": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "arrivalTime": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "aircraft": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "baseFare": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 50000000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  },
+                  "blockedSeats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 5
+                    },
+                    "maxItems": 200
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "scheduled",
+                      "delayed",
+                      "cancelled"
+                    ]
+                  }
+                },
+                "required": [
+                  "flightNumber",
+                  "airline",
+                  "airlineCode",
+                  "originCode",
+                  "destinationCode",
+                  "departureTime",
+                  "arrivalTime",
+                  "aircraft",
+                  "baseFare"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Flight created."
+          },
+          "400": {
+            "description": "Validation failure."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/flights/{flightId}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update Flight",
+        "description": "Update flight schedule, status, or fare.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "flightId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "flightNumber": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{2,8}$"
+                  },
+                  "airline": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "airlineCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9]{2,3}$"
+                  },
+                  "originCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "destinationCode": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "departureTime": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "arrivalTime": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "aircraft": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "baseFare": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 50000000
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 3
+                  },
+                  "blockedSeats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 5
+                    },
+                    "maxItems": 200
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "scheduled",
+                      "delayed",
+                      "cancelled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flight updated."
+          },
+          "400": {
+            "description": "Validation failure."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          },
+          "404": {
+            "description": "Flight not found."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete Flight",
+        "description": "Delete an unscheduled or empty flight.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "flightId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flight removed."
+          },
+          "400": {
+            "description": "Cannot delete flight with active bookings."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/bookings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin List Bookings",
+        "description": "Paginated list of all bookings across all customers.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "confirmed",
+                "cancelled",
+                "pending"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of bookings."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/bookings/{pnr}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin Cancel Booking",
+        "description": "Administrative override to cancel any booking.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$"
+            },
+            "required": true,
+            "name": "pnr",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Booking cancelled."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List Users",
+        "description": "List registered users.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/users/{userId}/role": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Change User Role",
+        "description": "Promote or demote a user between customer and admin roles.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "admin"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role updated."
+          },
+          "400": {
+            "description": "Validation failure or self-demotion blocked."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    },
+    "/api/admin/schedule/extend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Extend Flight Schedule",
+        "description": "Generate future flight occurrences for recurring route templates.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "horizonDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New flight dates created."
+          },
+          "403": {
+            "description": "Admin privileges required."
+          }
+        }
+      }
+    }
+  }
+};
+        window.ui = SwaggerUIBundle({
+          spec: spec,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          plugins: [
+            SwaggerUIBundle.plugins.DownloadUrl
+          ],
+          layout: "StandaloneLayout"
+        });
+      };
+    </script>
+  </body>
+</html>

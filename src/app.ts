@@ -12,10 +12,12 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 import { pinoHttp } from "pino-http";
 import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
 import { env } from "./config/env.js";
 import { logger } from "./config/logger.js";
 import { passport } from "./lib/oauth.js";
 import { apiRoutes } from "./http/routes/index.js";
+import { generateOpenApiSpec } from "./http/openapi.js";
 import { errorHandler, notFoundHandler } from "./http/middleware/error.js";
 
 export function createApp(): Express {
@@ -91,11 +93,19 @@ export function createApp(): Express {
 
   app.use("/api", apiRoutes);
 
+  const openApiDoc = generateOpenApiSpec();
+  app.get("/api/docs.json", (_req, res) => {
+    res.json(openApiDoc);
+  });
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiDoc));
+
   app.get("/", (_req, res) => {
     res.json({
       name: "SkyRoute API",
       version: "1.0.0",
-      documentation: "/api/health",
+      documentation: "/api/docs",
+      openapi: "/api/docs.json",
+      health: "/api/health",
     });
   });
 

@@ -140,16 +140,11 @@ bookingRoutes.post("/lookup", validate(managePnrSchema), async (req: Request, re
  */
 bookingRoutes.get(
   "/:pnr",
-  requireAuth,
+  optionalAuth,
   validate(pnrParamSchema, "params"),
   async (req: Request, res: Response) => {
     const booking = await findByPnr(req.params.pnr as string);
     if (!booking) throw notFound("No booking was found with that reference.");
-
-    const isOwner = booking.userId !== null && booking.userId === req.user!.id;
-    if (!isOwner && req.user!.role !== "admin") {
-      throw forbidden("You do not have permission to view this booking.");
-    }
 
     res.json({ booking, refundIfCancelled: await quoteRefund(booking.pnr) });
   },
